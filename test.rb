@@ -949,6 +949,10 @@ plates = [
     'RFF598', 'HAW200', 'IQB045',
 ]
 
+def url
+    'http://18.223.116.147:3004'
+end
+
 def get_lat
     n = Random.new.rand(0..1)
     if n == 0 
@@ -1057,13 +1061,55 @@ end
 
 def multi_send(array)
     sw = true
+    iter = 1
     while sw do
+        puts "iteracion ##{iter}"
+        iter += 1
         EventMachine.run do
             multi = EventMachine::MultiRequest.new
 
             array.each_with_index do |body, index|
                 # puts "json #{body.to_json}"
-                multi.add(index + 1, EventMachine::HttpRequest.new('http://192.168.0.101:82/v1/location_records').post(:head => {"Content-Type" => "application/json"}, :body => body.to_json))
+                multi.add(index + 1, EventMachine::HttpRequest.new("#{url}/v1/location_records").post(:head => {"Content-Type" => "application/json"}, :body => body.to_json))
+            end
+
+            multi.callback do   
+                puts "success: #{multi.responses[:callback].keys.size}"
+                puts "failed: #{multi.responses[:errback].keys.size}"                
+                
+                if multi.responses[:errback].keys.empty?                
+                    # sleep(1)
+                else         
+                    # puts multi.responses[:errback]
+                    # multi.responses[:errback].each do |key, value|                        
+                        # puts "#{key} error: #{value.error}"
+                        # body = JSON.parse(value.req.body)
+                        # puts "#{body['location']['lat']}, #{body['location']['lng']}"
+                    # end                                       
+                    # sw = false             
+                end
+
+                array = move_cars(array)
+                
+                EventMachine.stop
+            end
+        end
+    end
+end
+
+def multi_send_part(size, plates)
+    n = plates.size / size
+    (0..n - 1).each do |index|
+        bound_init = index * size
+        bound_end = bound_init + size - 1
+        puts "bounds: [#{bound_init}, #{bound_end}]"
+        array = generate_objects( plates[bound_init..bound_end] )
+        EventMachine.run do
+            multi = EventMachine::MultiRequest.new
+
+            array.each_with_index do |body, index|
+                # puts "json #{body.to_json}"
+                multi.add(index + 1, EventMachine::HttpRequest.new("#{url}/v1/location_records").post(:head => {"Content-Type" => "application/json"}, :body => body.to_json))
             end
 
             multi.callback do   
@@ -1090,49 +1136,10 @@ def multi_send(array)
     end
 end
 
-def multi_send_part(size, plates)
-    n = plates.size / size
-    (0..n - 1).each do |index|
-        bound_init = index * size
-        bound_end = bound_init + size - 1
-        puts "bounds: [#{bound_init}, #{bound_end}]"
-        array = generate_objects( plates[bound_init..bound_end] )
-        EventMachine.run do
-            multi = EventMachine::MultiRequest.new
-
-            array.each_with_index do |body, index|
-                # puts "json #{body.to_json}"
-                multi.add(index + 1, EventMachine::HttpRequest.new('http://192.168.0.101:82/v1/location_records').post(:head => {"Content-Type" => "application/json"}, :body => body.to_json))
-            end
-
-            multi.callback do   
-                puts "success: #{multi.responses[:callback].keys.size}"
-                puts "failed: #{multi.responses[:errback].keys.size}"                
-                
-                if multi.responses[:errback].keys.empty?                
-                    sleep(1)
-                else         
-                    # puts multi.responses[:errback]
-                    # multi.responses[:errback].each do |key, value|                        
-                    #     # puts "error: #{value.error}"
-                    #     # body = JSON.parse(value.req.body)
-                    #     # puts "#{body['location']['lat']}, #{body['location']['lng']}"
-                    # end                                       
-                    # sw = false             
-                end
-
-                array = move_cars(array)
-                
-                EventMachine.stop
-            end
-        end
-    end
-end
-
 
 CHARSET = Array('A'..'Z')
 NUMBER_CHARSET = Array('0'..'9')
 
-# multi_send(generate_objects(plates.take(16000)))
-multi_send_part(2000, plates.take(15000))
+multi_send(generate_objects(plates.take(1000)))
+# multi_send_part(2000, plates.take(15000))
 puts "end"
