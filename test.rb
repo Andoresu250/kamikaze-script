@@ -1080,13 +1080,18 @@ def multi_send(array)
                 if multi.responses[:errback].keys.empty?                
                     # sleep(1)
                 else         
-                    # puts multi.responses[:errback]
-                    # multi.responses[:errback].each do |key, value|                        
-                        # puts "#{key} error: #{value.error}"
-                        # body = JSON.parse(value.req.body)
-                        # puts "#{body['location']['lat']}, #{body['location']['lng']}"
-                    # end                                       
-                    # sw = false             
+                    hash = {}
+                    multi.responses[:errback].each do |key, value|                                                
+                        hash[value.error] = [] if hash[value.error].nil?
+                        hash[value.error].push(key)
+                        # puts "error: #{value.error}"                        
+                    end                            
+                    unless hash.empty?
+                        hash.each do |key, value|                 
+                            puts "Error: #{key} = #{value.join(", ")}"                     
+                        end        
+                    end                                                 
+                    sw = false              
                 end
 
                 array = move_cars(array)
@@ -1118,14 +1123,19 @@ def multi_send_part(size, plates)
                 
                 if multi.responses[:errback].keys.empty?                
                     # sleep(1)
-                else         
-                    # puts multi.responses[:errback]
-                    # multi.responses[:errback].each do |key, value|                        
-                    #     # puts "error: #{value.error}"
-                    #     # body = JSON.parse(value.req.body)
-                    #     # puts "#{body['location']['lat']}, #{body['location']['lng']}"
-                    # end                                       
-                    # sw = false             
+                else                                                 
+                    hash = {}
+                    multi.responses[:errback].each do |key, value|                                                
+                        hash[value.error] = [] if hash[value.error].empty?
+                        hash[value.error].push(key)
+                        # puts "error: #{value.error}"                        
+                    end                            
+                    unless hash.empty?
+                        hash.each do |key, value|                 
+                            puts "Error: #{key} = #{value.join(", ")}"                     
+                        end        
+                    end                                                 
+                    sw = false             
                 end
 
                 array = move_cars(array)
